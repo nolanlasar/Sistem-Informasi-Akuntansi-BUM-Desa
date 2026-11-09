@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Informasi Keuangan BUM Desa</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+  <!-- AUTHENTICATION CONTAINER (LOGIN) -->
+  <div id="loginSection" class="min-h-screen flex items-center justify-center bg-emerald-800">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold text-emerald-900">SIK BUM Desa</h2>
+        <p class="text-sm text-gray-600">Sistem Informasi Keuangan Transparan & Akuntabel</p>
+      </div>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2">Username</label>
+          <input type="text" id="loginUser" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+        </div>
+        <div class="mb-6">
+          <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+          <input type="password" id="loginPass" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg transition duration-200">Masuk Sistem</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP DASHBOARD VIEW -->
+  <div id="appSection" class="hidden min-h-screen flex flex-col md:flex-row">
+    <!-- Sidebar Navigation -->
+    <aside class="w-full md:w-64 bg-emerald-900 text-white flex-shrink-0">
+      <div class="p-4 font-bold text-lg border-b border-emerald-700 flex items-center gap-2">
+        <i class="fa-solid font-bold fa-building-columns"></i> BUM Desa Digital
+      </div>
+      <nav class="p-4 space-y-2">
+        <button onclick="switchTab('dashboardTab')" class="w-full text-left py-2.5 px-4 rounded hover:bg-emerald-700 transition flex items-center gap-3"><i class="fa-solid fa-chart-line"></i> Dashboard</button>
+        <button id="navJurnal" onclick="switchTab('jurnalTab')" class="w-full text-left py-2.5 px-4 rounded hover:bg-emerald-700 transition flex items-center gap-3"><i class="fa-solid fa-book-journal-whills"></i> Input Jurnal</button>
+        <button onclick="switchTab('bukuBesarTab')" class="w-full text-left py-2.5 px-4 rounded hover:bg-emerald-700 transition flex items-center gap-3"><i class="fa-solid fa-list-check"></i> Buku Besar</button>
+        <button onclick="switchTab('laporanTab')" class="w-full text-left py-2.5 px-4 rounded hover:bg-emerald-700 transition flex items-center gap-3"><i class="fa-solid fa-file-invoice-dollar"></i> Laporan Keuangan</button>
+        <button onclick="logout()" class="w-full text-left py-2.5 px-4 rounded bg-red-600 hover:bg-red-700 transition mt-8 flex items-center gap-3"><i class="fa-solid fa-right-from-bracket"></i> Keluar</button>
+      </nav>
+    </aside>
+
+    <!-- Content Workspace -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      
+      <!-- DASHBOARD TAB -->
+      <section id="dashboardTab" class="space-y-6">
+        <h1 class="text-2xl font-bold text-gray-800">Ringkasan Keuangan BUM Desa</h1>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-lg shadow border-l-4 border-blue-500">
+            <p class="text-gray-500 text-sm">Total Pendapatan</p>
+            <h3 id="dashPendapatan" class="text-xl font-bold text-gray-800">Rp 0</h3>
+          </div>
+          <div class="bg-white p-5 rounded-lg shadow border-l-4 border-red-500">
+            <p class="text-gray-500 text-sm">Total Beban Operasional</p>
+            <h3 id="dashBeban" class="text-xl font-bold text-gray-800">Rp 0</h3>
+          </div>
+          <div class="bg-white p-5 rounded-lg shadow border-l-4 border-emerald-500">
+            <p class="text-gray-500 text-sm">Laba Bersih Berjalan</p>
+            <h3 id="dashLaba" class="text-xl font-bold text-gray-800">Rp 0</h3>
+          </div>
+          <div class="bg-white p-5 rounded-lg shadow border-l-4 border-amber-500">
+            <p class="text-gray-500 text-sm">Saldo Kas & Bank</p>
+            <h3 id="dashKas" class="text-xl font-bold text-gray-800">Rp 0</h3>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h2 class="text-lg font-bold mb-4">Tren Performa Keuangan Bulanan</h2>
+          <canvas id="financialChart" class="max-h-80"></canvas>
+        </div>
+      </section>
+
+      <!-- MODUL JURNAL TRANSAKSI -->
+      <section id="jurnalTab" class="hidden space-y-6">
+        <h1 class="text-2xl font-bold text-gray-800">Input Transaksi Jurnal Umum</h1>
+        <form id="formJurnal" onsubmit="submitJurnalBatch(event)" class="bg-white p-6 rounded-lg shadow space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium">Tanggal Transaksi</label>
+              <input type="date" id="txTanggal" class="w-full border rounded p-2" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium">Nomor Bukti</label>
+              <input type="text" id="txNoBukti" placeholder="BKM-001/2026" class="w-full border rounded p-2" required>
+            </div>
+            <div>
+              <label class="block text-sm font-medium">Unit Usaha</label>
+              <select id="txUnit" class="w-full border rounded p-2">
+                <option value="Pengolahan Sampah">Unit Pengolahan Sampah</option>
+                <option value="Air Minum Desa">Unit PAM Desa</option>
+                <option value="Pariwisata Desa">Unit Pariwisata</option>
+                <option value="Holding / Sekretariat">Holding BUM Desa</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dynamic Entry Rows -->
+          <table class="w-full border-collapse border mt-4" id="tableJurnalRows">
+            <thead>
+              <tr class="bg-gray-100 text-left">
+                <th class="border p-2">Kode & Nama Akun</th>
+                <th class="border p-2">Uraian / Keterangan</th>
+                <th class="border p-2">Debit (Rp)</th>
+                <th class="border p-2">Kredit (Rp)</th>
+                <th class="border p-2 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="jurnalRowsBody">
+              <!-- Inline Rows added via JS -->
+            </tbody>
+          </table>
+
+          <div class="flex justify-between items-center pt-4">
+            <button type="button" onclick="addJurnalRow()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">+ Tambah Baris Akun</button>
+            <div class="text-right font-bold text-sm">
+              <p>Total Debit: <span id="lblTotalDebit" class="text-emerald-600">Rp 0</span></p>
+              <p>Total Kredit: <span id="lblTotalKredit" class="text-emerald-600">Rp 0</span></p>
+              <p id="lblBalanceStatus" class="text-red-500 text-xs">Status: Tidak Balance</p>
+            </div>
+          </div>
+
+          <button type="submit" id="btnSimpanJurnal" disabled class="w-full bg-emerald-600 text-white font-bold py-3 rounded disabled:opacity-50">Simpan Transaksi Ke Jurnal</button>
+        </form>
+      </section>
+
+      <!-- BUKU BESAR TAB -->
+      <section id="bukuBesarTab" class="hidden space-y-6">
+        <h1 class="text-2xl font-bold text-gray-800">Buku Besar Akun</h1>
+        <div class="bg-white p-4 rounded shadow flex gap-4">
+          <select id="selAkunBukuBesar" class="border p-2 rounded w-1/3"></select>
+          <button onclick="loadBukuBesar()" class="bg-emerald-600 text-white px-4 py-2 rounded">Tampilkan Buku Besar</button>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow overflow-x-auto">
+          <table class="w-full text-sm border-collapse border">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="border p-2">Tanggal</th>
+                <th class="border p-2">No. Bukti</th>
+                <th class="border p-2">Uraian</th>
+                <th class="border p-2">Debit</th>
+                <th class="border p-2">Kredit</th>
+                <th class="border p-2">Saldo Kumulatif</th>
+              </tr>
+            </thead>
+            <tbody id="bodyBukuBesar"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- LAPORAN KEUANGAN TAB -->
+      <section id="laporanTab" class="hidden space-y-6">
+        <h1 class="text-2xl font-bold text-gray-800">Laporan Keuangan Standar BUM Desa</h1>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <p class="text-gray-600">Modul untuk mengenerate otomatis Laporan Laba Rugi, Neraca Posisi Keuangan, Perubahan Ekuitas, dan Laporan Arus Kas sesuai dengan Permendesa & PP 11/2021.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Configuration
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxYOUR_DEPLOYED_GAS_ID/exec";
+    let currentUser = { token: "", role: "", username: "" };
+    let coaList = [];
+
+    // Navigation Tab Switcher
+    function switchTab(tabId) {
+      document.querySelectorAll("main > section").forEach(el => el.classList.add("hidden"));
+      document.getElementById(tabId).classList.remove("hidden");
+    }
+
+    // Login Handler
+    async function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById("loginUser").value;
+      const p = document.getElementById("loginPass").value;
+
+      try {
+        const res = await fetch(GAS_ENDPOINT, {
+          method: "POST",
+          body: JSON.stringify({ action: "login", username: u, password: p })
+        });
+        const data = await res.json();
+        
+        if (data.status === "success") {
+          currentUser = data;
+          document.getElementById("loginSection").classList.add("hidden");
+          document.getElementById("appSection").classList.remove("hidden");
+          
+          // Role Based Access Control UI Restrictions
+          if(currentUser.role === "Pengawas") {
+            document.getElementById("navJurnal").classList.add("hidden");
+          }
+
+          initApp();
+        } else {
+          alert(data.message);
+        }
+      } catch(err) {
+        alert("Gagal koneksi server: " + err.message);
+      }
+    }
+
+    async function initApp() {
+      await fetchCOA();
+      fetchDashboard();
+      addJurnalRow();
+      addJurnalRow();
+    }
+
+    async function fetchCOA() {
+      const res = await fetch(`${GAS_ENDPOINT}?action=getCOA&token=${currentUser.token}`);
+      const json = await res.json();
+      if(json.status === "success") {
+        coaList = json.data;
+        populateCOADropdowns();
+      }
+    }
+
+    function populateCOADropdowns() {
+      const selBB = document.getElementById("selAkunBukuBesar");
+      selBB.innerHTML = "";
+      coaList.filter(a => a.H_D === "D").forEach(a => {
+        selBB.innerHTML += `<option value="${a.Kode_Akun}">${a.Kode_Akun} - ${a.Nama_Akun}</option>`;
+      });
+    }
+
+    // Form Jurnal Dynamic Rows & Balancing Calculation
+    function addJurnalRow() {
+      const tbody = document.getElementById("jurnalRowsBody");
+      const tr = document.createElement("tr");
+      
+      let optionsHtml = coaList.filter(a => a.H_D === "D").map(a => `<option value="${a.Kode_Akun}">${a.Kode_Akun} - ${a.Nama_Akun}</option>`).join("");
+
+      tr.innerHTML = `
+        <td class="border p-2"><select class="row-akun w-full border p-1 rounded">${optionsHtml}</select></td>
+        <td class="border p-2"><input type="text" class="row-uraian w-full border p-1 rounded" placeholder="Keterangan transaksi"></td>
+        <td class="border p-2"><input type="number" oninput="calculateBalance()" value="0" class="row-debit w-full border p-1 rounded"></td>
+        <td class="border p-2"><input type="number" oninput="calculateBalance()" value="0" class="row-kredit w-full border p-1 rounded"></td>
+        <td class="border p-2 text-center"><button type="button" onclick="this.closest('tr').remove(); calculateBalance();" class="text-red-500 font-bold">X</button></td>
+      `;
+      tbody.appendChild(tr);
+      calculateBalance();
+    }
+
+    function calculateBalance() {
+      let totalD = 0, totalK = 0;
+      document.querySelectorAll(".row-debit").forEach(el => totalD += parseFloat(el.value || 0));
+      document.querySelectorAll(".row-kredit").forEach(el => totalK += parseFloat(el.value || 0));
+
+      document.getElementById("lblTotalDebit").innerText = "Rp " + totalD.toLocaleString("id-ID");
+      document.getElementById("lblTotalKredit").innerText = "Rp " + totalK.toLocaleString("id-ID");
+
+      const isBalanced = (totalD > 0) && (totalD === totalK);
+      const lblStatus = document.getElementById("lblBalanceStatus");
+      const btnSimpan = document.getElementById("btnSimpanJurnal");
+
+      if (isBalanced) {
+        lblStatus.innerText = "Status: Balance";
+        lblStatus.className = "text-emerald-600 text-xs font-bold";
+        btnSimpan.disabled = false;
+      } else {
+        lblStatus.innerText = "Status: Tidak Balance (Debit & Kredit harus seimbang)";
+        lblStatus.className = "text-red-500 text-xs font-bold";
+        btnSimpan.disabled = true;
+      }
+    }
+
+    async function submitJurnalBatch(e) {
+      e.preventDefault();
+      const rows = document.querySelectorAll("#jurnalRowsBody tr");
+      const items = [];
+
+      rows.forEach(r => {
+        items.push({
+          tanggal: document.getElementById("txTanggal").value,
+          noBukti: document.getElementById("txNoBukti").value,
+          unitUsaha: document.getElementById("txUnit").value,
+          kodeAkun: r.querySelector(".row-akun").value,
+          uraian: r.querySelector(".row-uraian").value,
+          debit: r.querySelector(".row-debit").value,
+          kredit: r.querySelector(".row-kredit").value
+        });
+      });
+
+      const payload = {
+        action: "saveJurnalBatch",
+        token: currentUser.token,
+        items: items
+      };
+
+      const res = await fetch(GAS_ENDPOINT, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+
+      if (json.status === "success") {
+        alert("Jurnal transaksi berhasil disimpan!");
+        document.getElementById("formJurnal").reset();
+        document.getElementById("jurnalRowsBody").innerHTML = "";
+        addJurnalRow();
+        addJurnalRow();
+        fetchDashboard();
+      } else {
+        alert("Gagal: " + json.message);
+      }
+    }
+
+    async function fetchDashboard() {
+      const res = await fetch(`${GAS_ENDPOINT}?action=getDashboard&token=${currentUser.token}`);
+      const json = await res.json();
+      if(json.status === "success") {
+        const d = json.data;
+        document.getElementById("dashPendapatan").innerText = "Rp " + d.totalPendapatan.toLocaleString("id-ID");
+        document.getElementById("dashBeban").innerText = "Rp " + d.totalBeban.toLocaleString("id-ID");
+        document.getElementById("dashLaba").innerText = "Rp " + d.labaBersih.toLocaleString("id-ID");
+        document.getElementById("dashKas").innerText = "Rp " + d.kasBank.toLocaleString("id-ID");
+      }
+    }
+
+    function logout() {
+      currentUser = { token: "", role: "", username: "" };
+      document.getElementById("appSection").classList.add("hidden");
+      document.getElementById("loginSection").classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>
